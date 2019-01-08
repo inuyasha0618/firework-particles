@@ -120,21 +120,37 @@ class Vec4 {
 }
 
 class Particle {
-    g: Vec2;
+    g: Vec2 = new Vec2(0, -0.08);
     v: Vec2;
-    pos: Vec2;
-    lastPos: Vec2;
+    pos: Vec2 = new Vec2(0, 0);
+    lastPos: Vec2 = new Vec2(0, 0);
     color: Vec4;
+    lifespan: number = 1;
     
-    constructor(_v: Vec2, _color: Vec4) {
-        this.g = new Vec2(0, -0.08);
-        this.v = _v;
-        this.pos = new Vec2(0, 0);
-        this.lastPos = new Vec2(0, 0);
-        this.color = _color;
+    constructor(parent: Firework) {
+
+        const angle: number = Math.PI * 2.0 * Math.random();
+        const v_len = Math.random() + 1.0;
+        const v_x: number = Math.cos(angle) * v_len;
+        const v_y: number = Math.sin(angle) * v_len;
+        const velo = new Vec2(v_x, v_y);
+        const col = Math.floor(Math.random() * 255);
+        const color = new Vec4(col, col, col, this.lifespan);
+
+        this.v = velo;
+        this.color = color;
+
+    }
+
+    isDead(): boolean {
+        return this.lifespan <= 0;
     }
 
     update() {
+        this.lifespan -= 0.01;
+        // if (this.lifespan <= 0) {
+        //     this.parent.
+        // }
         this.v.add(this.g);
         this.lastPos = this.pos;
         this.pos = Vec2.add(this.pos, this.v)
@@ -154,43 +170,40 @@ class Particle {
 
 class Firework {
     acc: Vec2;
-    v: Vec2;
+    v: Vec2 = new Vec2(0, 0);
     pos: Vec2;
     scale: number;
-    transform: Array<number>;
-    lastThreePos: Array<Vec2>;
+    transform: Array<number> = [];
+    lastThreePos: Array<Vec2> = [];
     explodeHeight: number;
-    hasExploded: boolean;
-    particles: Array<Particle>;
+    hasExploded: boolean = false;
+    particles: Array<Particle> = [];
 
     constructor(_pos: Vec2, _acc: Vec2, _explodeHeight: number) {
         // this.acc = new Vec2(0, 0.5 + Math.random());
         this.acc = _acc;
         this.explodeHeight = _explodeHeight;
         this.scale = 0.5 + Math.random();
-        this.v = new Vec2(0, 0);
         this.pos = _pos;
 
-        this.lastThreePos = [];
         this.lastThreePos.push(this.pos.clone());
         this.lastThreePos.push(this.pos.clone());
         this.lastThreePos.push(this.pos.clone());
-
-        this.hasExploded = false;
-        this.particles = [];
     }
 
     createParticles() {
         const num = 166;
         for (let i = 0; i < num; i++) {
-            const angle: number = Math.PI * 2.0 * Math.random();
-            const v_len = Math.random() + 1.0;
-            const v_x: number = Math.cos(angle) * v_len;
-            const v_y: number = Math.sin(angle) * v_len;
-            const velo = new Vec2(v_x, v_y);
-            const color = new Vec4(255, 255, 255, 1);
-            this.particles.push(new Particle(velo, color));
+            this.particles.push(new Particle(this));
         }
+    }
+
+    removeParticle(idx) {
+        this.particles.splice(idx, 1);
+    }
+
+    isDead(): boolean {
+        return !this.particles.length;
     }
 
     update() {
