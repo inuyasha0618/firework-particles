@@ -119,17 +119,37 @@ class Vec4 {
     }
 }
 
-class Particle {
-    acc: Vec2 = new Vec2(0, -0.05);
+abstract class Particle {
+    acc: Vec2;
     v: Vec2;
     pos: Vec2 = new Vec2(0, 0);
-    lastPos: Vec2 = new Vec2(0, 0);
     color: Vec4;
-    lifespan: number = 1;
-    decayRate: number = Math.random() * 0.005 + 0.005;
     
-    constructor() {
+    abstract isDead(): boolean;
 
+    update(): void {
+
+    }
+
+    draw(): void {
+
+    }
+
+    run() {
+        this.update();
+        this.draw();
+    }
+}
+
+class Spark extends Particle {
+    lastPos: Vec2 = new Vec2(0, 0);
+    lifespan: number = 1;
+    decayRate: number = Math.random() * 0.01 + 0.01;
+    boundary_top_left: Vec2;
+    boundary_bottom_right: Vec2;
+    
+    constructor(boundary_top_left: Vec2, boundary_bottom_right: Vec2) {
+        super();
         const angle: number = Math.PI * 2.0 * Math.random();
         const v_len = Math.random() + 1.0;
         const v_x: number = Math.cos(angle) * v_len;
@@ -140,13 +160,24 @@ class Particle {
         const col_b = Math.floor(Math.random() * 255);
         const color = new Vec4(col_r, col_g, col_b, this.lifespan);
 
+        this.acc = new Vec2(0, -0.05);
         this.v = velo;
+        this.pos = new Vec2(0, 0);
         this.color = color;
 
+        this.boundary_top_left = boundary_top_left;
+        this.boundary_bottom_right = boundary_bottom_right;
+    }
+
+    isOutBoundary(): boolean {
+        return this.pos.x < this.boundary_top_left.x
+            || this.pos.y > this.boundary_top_left.y
+            || this.pos.x > this.boundary_bottom_right.x
+            || this.pos.y < this.boundary_bottom_right.y;
     }
 
     isDead(): boolean {
-        return this.lifespan <= 0;
+        return this.lifespan <= 0 || this.isOutBoundary();
     }
 
     run() {
@@ -173,8 +204,9 @@ class Particle {
 }
 
 class Firework extends Particle {
-    lastThreePos: Array<Vec2> = [new Vec2(0, 0), new Vec2(0, 0), new Vec2(0, 0)];
+    lastThreePos: Array<Vec2> = [];
     explodeHeight: number;
+    scale: number = 0.3 + Math.random();
 
     constructor(_pos: Vec2, _acc: Vec2, _explodeHeight: number) {
         super();
@@ -182,6 +214,23 @@ class Firework extends Particle {
         this.v = new Vec2(0, 0);
         this.acc = _acc;
         this.explodeHeight = _explodeHeight;
+        this.color = this.createColor();
+        this.lastThreePos.push(this.pos.clone());
+        this.lastThreePos.push(this.pos.clone());
+        this.lastThreePos.push(this.pos.clone());
+    }
+
+    getScale() {
+        return this.scale;
+    }
+
+    createColor(): Vec4 {
+        const col_r = Math.floor(Math.random() * 255);
+        const col_g = Math.floor(Math.random() * 255);
+        const col_b = Math.floor(Math.random() * 255);
+        const alpha = 0.5 + 0.5 * Math.random();
+        const color = new Vec4(col_r, col_g, col_b, alpha);
+        return color;
     }
 
     isDead(): boolean {
@@ -199,12 +248,15 @@ class Firework extends Particle {
     draw() {
         const randomIdx: number = Math.floor(Math.random() * 3);
         const start: Vec2 = this.lastThreePos[randomIdx];
+        ctx.save();
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(this.pos.x, this.pos.y);
         ctx.closePath();
         ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.9)`;
+        ctx.lineWidth = this.scale;
         ctx.stroke();
+        ctx.restore();
     }
 }
 
@@ -229,17 +281,22 @@ class ParticleSystem extends Particle {
 
 class Boom extends ParticleSystem {
     pos: Vec2;
-    scale: number = 0.5 + Math.random();
+    scale: number;
     createParticles() {
+        const inv_scale = 1.0 / this.scale;
+        const top_left = new Vec2(-this.pos.x * inv_scale, (verti - this.pos.y) * inv_scale);
+        const bottom_right = new Vec2((hori - this.pos.x) * inv_scale, -this.pos.y * inv_scale);
+
         const num = 50 + 50 * Math.random();
         for (let i = 1; i < num; i++) {
-            this.particles.push(new Particle);
+            this.particles.push(new Spark(top_left, bottom_right));
         }
     }
 
-    constructor(_pos: Vec2) {
+    constructor(_pos: Vec2, _scale: number) {
         super();
         this.pos = _pos;
+        this.scale = _scale;
         this.createParticles();
     }
 
@@ -256,19 +313,19 @@ class FireworkShow extends ParticleSystem {
         super();
         setInterval(() => {
             this.addFirework();
-        }, 600);
+        }, 300);
     }
 
     private addFirework() {
         this.particles.push(new Firework(
-            new Vec2(Math.random() * hori, 0),
+            new Vec2((0.1 + 0.8 * Math.random()) * hori, 0),
             new Vec2(0, 0.02),
             (0.3 + Math.random() * 0.3) * verti
         ));
     }
 
-    private createBoom(pos: Vec2) {
-        this.particles.push(new Boom(pos));
+    private createBoom(pos: Vec2, scale: number) {
+        this.particles.push(new Boom(pos, scale));
     }
 
     run() {
@@ -279,7 +336,7 @@ class FireworkShow extends ParticleSystem {
             if (particle.isDead()) {
                 this.particles.splice(i, 1);
                 if (particle instanceof Firework) {
-                    this.createBoom(particle.pos);
+                    this.createBoom(particle.pos, particle.getScale());
                 }
             }
         }
@@ -300,8 +357,6 @@ const inv_vert = 1 / verti;
 // ctx.transform(cvsHeight * inv_vert, 0, 0, -cvsHeight * inv_vert, cvsWidth * 0.5, cvsHeight * 0.5);
 ctx.transform(cvsHeight * inv_vert, 0, 0, -cvsHeight * inv_vert, 0, cvsHeight);
 
-// const p = new Particle(new Vec2(-2, 0), new Vec4(255, 255, 255, 1));
-// const fire = new Firework(new Vec2(Math.random() * hori, 0), new Vec2(0, 0.02), (0.3 + Math.random() * 0.3) * verti);
 const magicShow = new FireworkShow();
 
 new RenderLooper(() => {
@@ -311,8 +366,6 @@ new RenderLooper(() => {
     ctx.fillRect(0, 0, hori, verti);
 
     ctx.globalCompositeOperation = 'lighter';
-
-    // p.draw();
 
     magicShow.run();
 }).start();
