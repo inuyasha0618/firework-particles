@@ -287,7 +287,7 @@ class Boom extends ParticleSystem {
         const top_left = new Vec2(-this.pos.x * inv_scale, (verti - this.pos.y) * inv_scale);
         const bottom_right = new Vec2((hori - this.pos.x) * inv_scale, -this.pos.y * inv_scale);
 
-        const num = 50 + 50 * Math.random();
+        const num = 50 + 150 * Math.random();
         for (let i = 1; i < num; i++) {
             this.particles.push(new Spark(top_left, bottom_right));
         }
