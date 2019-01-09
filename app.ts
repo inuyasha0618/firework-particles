@@ -120,14 +120,14 @@ class Vec4 {
 }
 
 class Particle {
-    g: Vec2 = new Vec2(0, -0.08);
+    g: Vec2 = new Vec2(0, -0.05);
     v: Vec2;
     pos: Vec2 = new Vec2(0, 0);
     lastPos: Vec2 = new Vec2(0, 0);
     color: Vec4;
     lifespan: number = 1;
     
-    constructor(parent: Firework) {
+    constructor() {
 
         const angle: number = Math.PI * 2.0 * Math.random();
         const v_len = Math.random() + 1.0;
@@ -146,24 +146,25 @@ class Particle {
         return this.lifespan <= 0;
     }
 
+    run() {
+        this.update();
+        this.draw();
+    }
+
     update() {
         this.lifespan -= 0.01;
-        // if (this.lifespan <= 0) {
-        //     this.parent.
-        // }
         this.v.add(this.g);
         this.lastPos = this.pos;
         this.pos = Vec2.add(this.pos, this.v)
     }
 
     draw() {
-        this.update();
         ctx.beginPath();
         ctx.moveTo(this.lastPos.x, this.lastPos.y);
         ctx.lineTo(this.pos.x, this.pos.y);
         ctx.closePath();
         const col: Vec4 = this.color;
-        ctx.strokeStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${col.a})`;
+        ctx.strokeStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${this.lifespan})`;
         ctx.stroke();
     }
 }
@@ -194,12 +195,8 @@ class Firework {
     createParticles() {
         const num = 166;
         for (let i = 0; i < num; i++) {
-            this.particles.push(new Particle(this));
+            this.particles.push(new Particle());
         }
-    }
-
-    removeParticle(idx) {
-        this.particles.splice(idx, 1);
     }
 
     isDead(): boolean {
@@ -239,8 +236,12 @@ class Firework {
             ctx.save();
             const transform = this.transform;
             ctx.transform(transform[0], transform[1], transform[2], transform[3], transform[4], transform[5]);
-            for (let i = 0; i < len; i++) {
-                this.particles[i].draw();
+            for (let i = len - 1; i >= 0; i--) {
+                const particle = this.particles[i];
+                particle.run();
+                if (particle.isDead()) {
+                    this.particles.splice(i, 1);
+                }
             }
             ctx.restore();
         }
