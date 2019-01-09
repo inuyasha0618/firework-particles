@@ -311,9 +311,9 @@ class Boom extends ParticleSystem {
 class FireworkShow extends ParticleSystem {
     constructor() {
         super();
-        setInterval(() => {
+        new RenderLooper(() => {
             this.addFirework();
-        }, 300);
+        }, 4).start();
     }
 
     private addFirework() {
@@ -350,7 +350,7 @@ const { width: cvsWidth, height: cvsHeight } = canvas.getBoundingClientRect();
 
 const w_h: number = cvsWidth / cvsHeight;
 // 不论是什么样的分辨率，画布的垂直方向的长度都解析成100， 宽度为 cvsWidth / cvsHeight * 100
-const verti = 100;
+const verti = 200;
 const hori = w_h * verti;
 const inv_vert = 1 / verti;
 
