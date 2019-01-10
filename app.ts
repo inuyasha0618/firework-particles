@@ -227,7 +227,7 @@ class Spark extends Particle {
 class Firework extends Particle {
     lastThreePos: Array<Vec2> = [];
     explodeHeight: number;
-    scale: number = 0.3 + Math.random();
+    scale: number = 0.1 + 0.8 * Math.random();
 
     constructor(_pos: Vec2, _acc: Vec2, _explodeHeight: number) {
         super();
