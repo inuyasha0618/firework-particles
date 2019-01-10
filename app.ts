@@ -119,6 +119,20 @@ class Vec4 {
     }
 }
 
+class HSLA {
+    h: number;
+    s: string;
+    l: string;
+    a: number;
+
+    constructor(_h: number, _s: string, _l: string, _a: number) {
+        this.h = _h;
+        this.s = _s;
+        this.l = _l;
+        this.a = _a;
+    }
+}
+
 abstract class Particle {
     acc: Vec2;
     v: Vec2;
@@ -147,23 +161,29 @@ class Spark extends Particle {
     decayRate: number = Math.random() * 0.01 + 0.01;
     boundary_top_left: Vec2;
     boundary_bottom_right: Vec2;
+    hsla_color: HSLA;
     
-    constructor(boundary_top_left: Vec2, boundary_bottom_right: Vec2) {
+    constructor(boundary_top_left: Vec2, boundary_bottom_right: Vec2, base_color: number) {
         super();
         const angle: number = Math.PI * 2.0 * Math.random();
         const v_len = Math.random() + 1.0;
         const v_x: number = Math.cos(angle) * v_len;
         const v_y: number = Math.sin(angle) * v_len;
         const velo = new Vec2(v_x, v_y);
-        const col_r = Math.floor(Math.random() * 255);
-        const col_g = Math.floor(Math.random() * 255);
-        const col_b = Math.floor(Math.random() * 255);
-        const color = new Vec4(col_r, col_g, col_b, this.lifespan);
+        // const col_r = Math.floor(Math.random() * 255);
+        // const col_g = Math.floor(Math.random() * 255);
+        // const col_b = Math.floor(Math.random() * 255);
+
+        const h = base_color;
+        const s = `${Math.random() * 100}%`;
+        const l = '100%'; 
+
+        const hsla_color = new HSLA(h, s, l, this.lifespan);
 
         this.acc = new Vec2(0, -0.05);
         this.v = velo;
         this.pos = new Vec2(0, 0);
-        this.color = color;
+        this.hsla_color = hsla_color;
 
         this.boundary_top_left = boundary_top_left;
         this.boundary_bottom_right = boundary_bottom_right;
@@ -197,8 +217,9 @@ class Spark extends Particle {
         ctx.moveTo(this.lastPos.x, this.lastPos.y);
         ctx.lineTo(this.pos.x, this.pos.y);
         ctx.closePath();
-        const col: Vec4 = this.color;
-        ctx.strokeStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${this.lifespan})`;
+        const col: HSLA = this.hsla_color;
+        ctx.strokeStyle = `hsla(${col.h}, ${col.l}, ${col.s}, ${this.lifespan})`;
+        // ctx.strokeStyle = 'hsl(360, 50%, 50%)';
         ctx.stroke();
     }
 }
@@ -288,8 +309,9 @@ class Boom extends ParticleSystem {
         const bottom_right = new Vec2((hori - this.pos.x) * inv_scale, -this.pos.y * inv_scale);
 
         const num = 50 + 150 * Math.random();
+        const base_color = Math.random() * 360;
         for (let i = 1; i < num; i++) {
-            this.particles.push(new Spark(top_left, bottom_right));
+            this.particles.push(new Spark(top_left, bottom_right, base_color));
         }
     }
 
@@ -320,7 +342,7 @@ class FireworkShow extends ParticleSystem {
         this.particles.push(new Firework(
             new Vec2((0.1 + 0.8 * Math.random()) * hori, 0),
             new Vec2(0, 0.02),
-            (0.3 + Math.random() * 0.3) * verti
+            (0.3 + Math.random() * 0.5) * verti
         ));
     }
 
@@ -368,4 +390,4 @@ new RenderLooper(() => {
     ctx.globalCompositeOperation = 'lighter';
 
     magicShow.run();
-}).start();
+}, 60).start();
