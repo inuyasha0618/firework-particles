@@ -282,19 +282,18 @@ class Firework extends Particle {
 }
 
 class ParticleSystem extends Particle {
-    particles: Array<Particle> = [];
+    // particles: Array<Particle> = [];
+    particles: Set<Particle> = new Set();
 
     isDead(): boolean {
-        return this.particles.length === 0;
+        return this.particles.size === 0;
     }
 
     run() {
-        const len: number = this.particles.length;
-        for (let i = len - 1; i >= 0; i--) {
-            const particle = this.particles[i];
-            particle.run();
-            if (particle.isDead()) {
-                this.particles.splice(i, 1);
+        for (let current of this.particles.values()) {
+            current.run();
+            if (current.isDead()) {
+                this.particles.delete(current);
             }
         }
     }
@@ -311,7 +310,7 @@ class Boom extends ParticleSystem {
         const num = 50 + 150 * Math.random();
         const base_color = Math.random() * 360;
         for (let i = 1; i < num; i++) {
-            this.particles.push(new Spark(top_left, bottom_right, base_color));
+            this.particles.add(new Spark(top_left, bottom_right, base_color));
         }
     }
 
@@ -339,7 +338,7 @@ class FireworkShow extends ParticleSystem {
     }
 
     private addFirework() {
-        this.particles.push(new Firework(
+        this.particles.add(new Firework(
             new Vec2((0.1 + 0.8 * Math.random()) * hori, 0),
             new Vec2(0, 0.02),
             (0.3 + Math.random() * 0.5) * verti
@@ -347,19 +346,17 @@ class FireworkShow extends ParticleSystem {
     }
 
     private createBoom(pos: Vec2, scale: number) {
-        this.particles.push(new Boom(pos, scale));
+        this.particles.add(new Boom(pos, scale));
     }
 
     run() {
-        const len: number = this.particles.length;
-        for (let i = len - 1; i >= 0; i--) {
-            const particle = this.particles[i];
+        for (let particle of this.particles.values()) {
             particle.run();
             if (particle.isDead()) {
-                this.particles.splice(i, 1);
                 if (particle instanceof Firework) {
                     this.createBoom(particle.pos, particle.getScale());
                 }
+                this.particles.delete(particle);
             }
         }
     }
